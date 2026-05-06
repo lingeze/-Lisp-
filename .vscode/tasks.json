@@ -1,39 +1,62 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "configure",
-      "type": "process",
-      "command": "cmake",
-      "args": [
-        "-DCMAKE_BUILD_TYPE=Debug",
-        "-GMinGW Makefiles",
-        "-Bbuild"
-      ],
-      "problemMatcher": []
-    },
-    {
-      "label": "build",
-      "type": "process",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "build"
-      ],
-      "problemMatcher": "$gcc",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "run and pause",
-      "type": "shell",
-      "command": "${workspaceFolder}\\bin\\mini_lisp.exe",
-      "options": {
-        "cwd": "${workspaceFolder}\\bin"
-      },
-      "dependsOn": "build"
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "configure",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "-DCMAKE_BUILD_TYPE=Debug",
+                "-GMinGW Makefiles",
+                "-Bbuild"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "build",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "run and pause",
+            "type": "shell",
+            "command": "${workspaceFolder}\\bin\\mini_lisp.exe",
+            "options": {
+                "cwd": "${workspaceFolder}\\bin"
+            },
+            "dependsOn": "build"
+        },
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe 生成活动文件",
+            "command": "C:\\MSYS\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "调试器生成的任务。"
+        }
+    ]
 }
