@@ -2,12 +2,22 @@
 #define VALUE_H
 #include <string>
 #include <memory>
-class Value{
+#include <vector>
+#include <optional>
+class Value;
+using ValuePtr = std::shared_ptr<Value>;
+class Value: public std::enable_shared_from_this<Value>{
 public:
     virtual ~Value() = default;
     virtual std::string toString() = 0;
+    bool isSelfEvaluating();
+    bool isNil();
+    bool isList();
+    std::vector<ValuePtr> toVector();
+    virtual std::optional<std::string> asSymbol(){
+        return std::nullopt;
+    }
 };
-using ValuePtr = std::shared_ptr<Value>; 
 class BooleanValue: public Value{
 private:
     bool value{0};
@@ -47,6 +57,9 @@ public:
 
     }
     std::string toString() override;
+    std::optional<std::string> asSymbol()override{
+        return toString();
+    }
 };
 class PairValue: public Value{
 private:
@@ -55,6 +68,9 @@ public:
     PairValue(ValuePtr l, ValuePtr r):lptr{l}, rptr{r}{
 
     }
+    ValuePtr car()const{return lptr;}
+    ValuePtr cdr()const{return rptr;}
     std::string toString() override;
 };
+ValuePtr ToList(std::vector<ValuePtr> ptrs);
 #endif
