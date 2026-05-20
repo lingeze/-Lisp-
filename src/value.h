@@ -6,6 +6,7 @@
 #include <optional>
 class Value;
 using ValuePtr = std::shared_ptr<Value>;
+using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
 class Value: public std::enable_shared_from_this<Value>{
 public:
     virtual ~Value() = default;
@@ -13,6 +14,8 @@ public:
     bool isSelfEvaluating();
     bool isNil();
     bool isList();
+    bool isNumber();
+    int asNumber();
     std::vector<ValuePtr> toVector();
     virtual std::optional<std::string> asSymbol(){
         return std::nullopt;
@@ -71,6 +74,17 @@ public:
     ValuePtr car()const{return lptr;}
     ValuePtr cdr()const{return rptr;}
     std::string toString() override;
+};
+class BuiltinProcValue:public Value{ 
+private:
+    BuiltinFuncType* value{};
+
+public:
+    BuiltinProcValue(BuiltinFuncType* v):value{v}{
+
+    }
+    std::string toString() override;
+    ValuePtr call(std::vector<ValuePtr> args);
 };
 ValuePtr ToList(std::vector<ValuePtr> ptrs);
 #endif

@@ -35,6 +35,7 @@ std::vector<ValuePtr> Value::toVector(){
         v.push_back(pair->car());
         cur = pair->cdr();
         if (!cur->isList()) {
+            if(cur->isNil())break;
             v.push_back(cur);
             break;
         }
@@ -61,6 +62,9 @@ std::string SymbolValue::toString(){
 }
 std::string BuiltinProcValue::toString(){
     return "#<procedure>";
+}
+ValuePtr BuiltinProcValue::call(std::vector<ValuePtr> args){
+    return value(args);
 }
 static std::string noquoted(std::string s){
     int len = s.size();
