@@ -43,8 +43,10 @@ double Value::asNumber(){
     return std::stod(toString());
 }
 std::vector<ValuePtr> Value::toVector(){
+    //std::cout << "begin:" << toString() <<std::endl;
+    if(isNil())return {};
     if(!isPair()){
-        throw(LispError("Cannot transform to vector"));
+        throw(LispError("cannot transform to vector"));
     }
     std::vector<ValuePtr> v;
     ValuePtr cur = shared_from_this();
@@ -52,13 +54,20 @@ std::vector<ValuePtr> Value::toVector(){
         auto pair = std::dynamic_pointer_cast<PairValue>(cur);
         if (!pair) throw LispError("Invalid list structure");
         v.push_back(pair->car());
+        //std::cout << pair->car()->toString() << std::endl;
         cur = pair->cdr();
+        //std::cout << pair->cdr()->toString() << std::endl;
         if (!cur->isPair()) {
             if(cur->isNil())break;
             v.push_back(cur);
             break;
         }
     }
+    /*std::cout << v.size() << std::endl;
+    for(auto it : v){
+        std::cout << it->toString() << std::endl;
+    }
+    std::cout << "ok" << std::endl;*/
     return v;
 }
 std::string BooleanValue::toString(){
@@ -99,6 +108,9 @@ std::string PairValue::toString(){
     }
     std::string connect = s2.size() ? " " : "";
     return "(" + s1 + connect + s2 + ")";
+}
+std::string LambdaValue::toString(){
+    return "#<procedure>";
 }
 ValuePtr ToList(const std::vector<ValuePtr> &ptrs){
     int len = ptrs.size();

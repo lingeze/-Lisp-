@@ -1,6 +1,7 @@
 #include "./eval_env.h"
 #include "./error.h"
 #include "./builtins.h"
+#include "./forms.h"
 #include <iostream>
 #include <algorithm>
 #include <iterator>
@@ -14,25 +15,26 @@ ValuePtr EvalEnv::eval(ValuePtr expr){
     else if(expr->isSelfEvaluating()){
         return expr;
     }
+    /* old hard-coded define:
     else if(expr->isPair()){
         std::vector<ValuePtr> v = expr->toVector();
         if(v[0]->asSymbol() == "define"s){
-            if (v.size() != 3) {
-                throw LispError("expected 2 arguments, got " + std::to_string(v.size() - 1));
-            }
-            if(auto name = v[1]->asSymbol()){
-                symbolTable[*name] = eval(v[2]);
-                return std::make_shared<NilValue>();
+            ...
+        }
+        else { ... }
+    }
+    */
+    else if(expr->isPair()){
+        auto pair = static_cast<PairValue*>(expr.get());
+        if (auto name = pair->car()->asSymbol()) {
+            if (auto it = SPECIAL_FORMS.find(*name); it != SPECIAL_FORMS.end()) {
+                return it->second(pair->cdr()->toVector(), *this);
             }
         }
-        else {
-            ValuePtr proc = this->eval(v[0]);
-            //std::cout << "proc:" << proc->toString() << std::endl;
-            std::vector<ValuePtr> args = evalList(std::dynamic_pointer_cast<PairValue>(expr)->cdr());
-            //std::cout << "evallist end" << std::endl;
-            return apply(proc, args);
-            //throw LispError("Malformed define.");    
-        }
+        // not a special form: evaluate as regular function call
+        ValuePtr proc = this->eval(pair->car());
+        std::vector<ValuePtr> args = evalList(pair->cdr());
+        return apply(proc, args);
     }
     else if(auto name = expr->asSymbol()){
         if (symbolTable.find(*name) != symbolTable.end()) {
@@ -69,4 +71,7 @@ EvalEnv::EvalEnv(){
     for (const auto& [name, func] : getBuiltins()) {
         symbolTable[name] = std::make_shared<BuiltinProcValue>(func);
     }
+}
+void EvalEnv::addVariable(const std::string& name, ValuePtr value) {
+    symbolTable[name] = value;
 }

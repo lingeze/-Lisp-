@@ -91,5 +91,18 @@ public:
     std::string toString() override;
     ValuePtr call(std::vector<ValuePtr> args);
 };
-ValuePtr ToList(std::vector<ValuePtr> ptrs);
+class LambdaValue : public Value {
+private:
+    std::vector<std::string> params{};
+    std::vector<ValuePtr> body{};
+public:
+    LambdaValue(std::vector<std::string> params, std::vector<ValuePtr> body):params(params), body(body){
+
+    }
+    LambdaValue(){
+
+    }
+    std::string toString() override; // 如前所述，返回 #<procedure> 即可
+};
+ValuePtr ToList(const std::vector<ValuePtr>& ptrs);
 #endif
