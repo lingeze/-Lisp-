@@ -4,6 +4,8 @@
 #include <sstream>
 #include <cmath>
 #include <vector>
+#include "value.h"
+#include <iostream>
 bool Value::isNil(){
     return typeid(*this) == typeid(NilValue);
 }
@@ -13,18 +15,35 @@ bool Value::isSelfEvaluating(){
     || (typeid(*this) == typeid(BooleanValue))
     || (typeid(*this) == typeid(BuiltinProcValue));
 }
-bool Value::isList(){
+bool Value::isPair(){
     return typeid(*this) == typeid(PairValue);
+}
+bool Value::isString(){
+    return typeid(*this) == typeid(StringValue);
 }
 bool Value::isNumber(){
     return typeid(*this) == typeid(NumericValue);
 }
-int Value::asNumber(){
+bool Value::isSymbol(){
+    return typeid(*this) == typeid(SymbolValue);
+}
+bool Value::isInteger() {
+    if(!isNumber())return false;
+    double num = asNumber();
+    return (floor(num) == num);
+}
+bool Value::isBool() {
+    return typeid(*this) == typeid(BooleanValue);
+}
+bool Value::isProcedure() {
+    return typeid(*this) == typeid(BuiltinProcValue);
+}
+double Value::asNumber(){
     if(!isNumber())throw(LispError("Not a number"));
-    return std::stoi(toString());
+    return std::stod(toString());
 }
 std::vector<ValuePtr> Value::toVector(){
-    if(!isList()){
+    if(!isPair()){
         throw(LispError("Cannot transform to vector"));
     }
     std::vector<ValuePtr> v;
@@ -34,7 +53,7 @@ std::vector<ValuePtr> Value::toVector(){
         if (!pair) throw LispError("Invalid list structure");
         v.push_back(pair->car());
         cur = pair->cdr();
-        if (!cur->isList()) {
+        if (!cur->isPair()) {
             if(cur->isNil())break;
             v.push_back(cur);
             break;
@@ -81,7 +100,7 @@ std::string PairValue::toString(){
     std::string connect = s2.size() ? " " : "";
     return "(" + s1 + connect + s2 + ")";
 }
-ValuePtr ToList(std::vector<ValuePtr> ptrs){
+ValuePtr ToList(const std::vector<ValuePtr> &ptrs){
     int len = ptrs.size();
     if(!len)return std::make_shared<NilValue>();
     auto ret = std::make_shared<PairValue>(ptrs[len-1], std::make_shared<NilValue>());

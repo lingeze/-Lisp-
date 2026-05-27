@@ -14,7 +14,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr){
     else if(expr->isSelfEvaluating()){
         return expr;
     }
-    else if(expr->isList()){
+    else if(expr->isPair()){
         std::vector<ValuePtr> v = expr->toVector();
         if(v[0]->asSymbol() == "define"s){
             if (v.size() != 3) {
@@ -66,6 +66,7 @@ ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr> args) {
     }
 }
 EvalEnv::EvalEnv(){
-    symbolTable["+"] = std::make_shared<BuiltinProcValue>(&add);
-    symbolTable["print"] = std::make_shared<BuiltinProcValue>(&print);
+    for (const auto& [name, func] : getBuiltins()) {
+        symbolTable[name] = std::make_shared<BuiltinProcValue>(func);
+    }
 }

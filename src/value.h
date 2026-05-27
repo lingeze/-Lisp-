@@ -13,9 +13,14 @@ public:
     virtual std::string toString() = 0;
     bool isSelfEvaluating();
     bool isNil();
-    bool isList();
+    bool isPair();
     bool isNumber();
-    int asNumber();
+    bool isString();
+    bool isSymbol();
+    bool isInteger();
+    double asNumber();
+    bool isBool();
+    bool isProcedure();
     std::vector<ValuePtr> toVector();
     virtual std::optional<std::string> asSymbol(){
         return std::nullopt;
