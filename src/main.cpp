@@ -1,24 +1,88 @@
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <getopt.h>
 
 #include "./tokenizer.h"
 #include "./parser.h"
 #include "rjsj_test.hpp"
 #include "./eval_env.h"
+#include "./error.h"
+
 struct TestCtx {
-    EvalEnv env;
+    std::shared_ptr<EvalEnv> env = EvalEnv::createGlobal();
     std::string eval(std::string input) {
         auto tokens = Tokenizer::tokenize(input);
         Parser parser(std::move(tokens));
         auto value = parser.parse();
-        auto result = env.eval(std::move(value));
+        auto result = env->eval(std::move(value));
         return result->toString();
     }
 };
 
-int main() {
-    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra);
-    EvalEnv env;
+void printUsage() {
+    std::cerr << "Usage: mini_lisp [file] [-o output] [--repl]\n"
+              << "  file       input .scm file\n"
+              << "  -o file    redirect output to file\n"
+              << "  --repl     force REPL mode\n";
+}
+
+static struct option longOpts[] = {
+    {"output", required_argument, nullptr, 'o'},
+    {"repl",   no_argument,       nullptr, 'r'},
+    {"help",   no_argument,       nullptr, 'h'},
+    {nullptr,  0,                 nullptr,  0 }
+};
+
+void runFile(const std::string& path, std::shared_ptr<EvalEnv> env) {
+    std::ifstream file(path);
+    if (!file.is_open())
+        throw LispError("cannot open file: " + path);
+    std::string content, line;
+    while (std::getline(file, line))
+        content += line + "\n";
+    auto tokens = Tokenizer::tokenize(content);
+    Parser parser(std::move(tokens));
+    while (!parser.empty()) {
+        env->eval(parser.parse());
+    }
+}
+int main(int argc, char* argv[]) {
+    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
+    std::string inputPath;
+    std::string outputPath;
+    bool replMode = false;
+
+    int opt;
+    while ((opt = getopt_long(argc, argv, "o:rh", longOpts, nullptr)) != -1) {
+        switch (opt) {
+            case 'o': outputPath = optarg; break;
+            case 'r': replMode = true;     break;
+            case 'h': printUsage(); return 0;
+            default:  printUsage(); return 1;
+        }
+    }
+
+    if (optind < argc)
+        inputPath = argv[optind++];
+    if (optind < argc) {
+        std::cerr << "Error: too many input files\n";
+        return 1;
+    }
+
+
+    auto env = EvalEnv::createGlobal();
+
+    if (!inputPath.empty()) {
+        try {
+            runFile(inputPath, env);
+        } catch (std::runtime_error& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+    }
+
     while (true) {
         try {
             std::cout << ">>> " ;
@@ -27,16 +91,11 @@ int main() {
             if (std::cin.eof()) {
                 std::exit(0);
             }
-            auto tokens = Tokenizer::tokenize(line); 
-            /*for (auto& token : tokens) {
-                std::cout << *token << std::endl;
-            }*/
+            auto tokens = Tokenizer::tokenize(line);
             Parser parser(std::move(tokens)); // TokenPtr 不支持复制
             auto value = parser.parse();
-            //std::cout << value->toString() << std::endl; 
-            //std::cout << "main:" << value->isNil() << std::endl;
-            auto result = env.eval(std::move(value));
-            std::cout << result->toString() << std::endl; // 输出外部表示
+            auto result = env->eval(std::move(value));
+            std::cout << result->toString() << std::endl;
         } catch (std::runtime_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;
         }

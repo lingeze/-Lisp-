@@ -1,51 +1,40 @@
 #include "./eval_env.h"
 #include "./error.h"
 #include "./builtins.h"
+#include "./builtin_func_args.h"
 #include "./forms.h"
 #include <iostream>
 #include <algorithm>
 #include <iterator>
 using namespace std::literals;
+std::shared_ptr<EvalEnv> EvalEnv::createGlobal() {
+    return std::shared_ptr<EvalEnv>(new EvalEnv());
+}
 ValuePtr EvalEnv::eval(ValuePtr expr){
     //std::cout << expr->toString() << std::endl; 
     //std::cout << "eval:" << expr->isNil() << std::endl;
     if(expr->isNil()){
-        throw LispError("Evaluating nil is prohibited.");
+        throw LispError("cannot evaluate nil");
     }
     else if(expr->isSelfEvaluating()){
         return expr;
     }
-    /* old hard-coded define:
     else if(expr->isPair()){
-        std::vector<ValuePtr> v = expr->toVector();
-        if(v[0]->asSymbol() == "define"s){
-            ...
-        }
-        else { ... }
-    }
-    */
-    else if(expr->isPair()){
-        auto pair = static_cast<PairValue*>(expr.get());
+        auto pair = expr->asPair();
         if (auto name = pair->car()->asSymbol()) {
             if (auto it = SPECIAL_FORMS.find(*name); it != SPECIAL_FORMS.end()) {
                 return it->second(pair->cdr()->toVector(), *this);
             }
         }
-        // not a special form: evaluate as regular function call
         ValuePtr proc = this->eval(pair->car());
         std::vector<ValuePtr> args = evalList(pair->cdr());
         return apply(proc, args);
     }
     else if(auto name = expr->asSymbol()){
-        if (symbolTable.find(*name) != symbolTable.end()) {
-            auto value = symbolTable[*name];
-            return value;
-        } else {
-            throw LispError("Variable " + *name + " not defined.");
-        }
+        return lookupBinding(expr);
     }
     else{
-        throw LispError("Unimplemented");
+        throw LispError("cannot evaluate expression of this type");
     }
     return {};
 }
@@ -60,11 +49,15 @@ std::vector<ValuePtr> EvalEnv::evalList(ValuePtr expr) {
     return result;
 }
 ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr> args) {
-    if (typeid(*proc) == typeid(BuiltinProcValue)) {
-        auto func = std::dynamic_pointer_cast<BuiltinProcValue>(proc);
-        return func->call(args);
-    } else {
-        throw LispError("Unimplemented");
+    if (auto func = std::dynamic_pointer_cast<BuiltinProcValue>(proc)){
+        FuncArgs funcArgs(args, shared_from_this());
+        return func->call(funcArgs);
+    }
+    else if(auto func = std::dynamic_pointer_cast<LambdaValue>(proc)){
+        return func->apply(args);
+    }
+    else {
+        throw LispError("cannot apply: expected a procedure");
     }
 }
 EvalEnv::EvalEnv(){
@@ -72,6 +65,43 @@ EvalEnv::EvalEnv(){
         symbolTable[name] = std::make_shared<BuiltinProcValue>(func);
     }
 }
+void EvalEnv::set_parent(const std::shared_ptr<EvalEnv>& parentEnv) {
+    parent = parentEnv;
+}
 void EvalEnv::addVariable(const std::string& name, ValuePtr value) {
     symbolTable[name] = value;
+}
+void EvalEnv::delVariable(const std::string& name) {
+    symbolTable.erase(name);
+}
+std::unordered_map<std::string, ValuePtr> EvalEnv::saveSymbolTable() const {
+    return symbolTable;
+}
+void EvalEnv::restoreSymbolTable(const std::unordered_map<std::string, ValuePtr>& tbl) {
+    symbolTable = tbl;
+}
+ValuePtr EvalEnv::lookupBinding(ValuePtr expr) {
+    auto name = expr->asSymbol();
+    if (symbolTable.find(*name) != symbolTable.end()) {
+        auto value = symbolTable[*name];
+        return value;
+    }else if(parent){
+        return parent->lookupBinding(expr);
+    }
+    else{
+        throw LispError("variable " + *name + " is not defined");
+    }
+}
+std::shared_ptr<EvalEnv> EvalEnv::createChild
+(const std::vector<std::string>& params, const std::vector<ValuePtr>& args){
+    if(params.size()!=args.size()){
+        throw LispError("cannot create environment: parameter count mismatch");
+    }
+    auto env = std::shared_ptr<EvalEnv>(new EvalEnv());
+    env->set_parent(shared_from_this());
+    int len = params.size();
+    for (int i = 0; i < len; i ++ ){
+        env->addVariable(params[i], args[i]);
+    }
+    return env;
 }

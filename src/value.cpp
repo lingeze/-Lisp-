@@ -1,10 +1,10 @@
 #include "./value.h"
 #include "./error.h"
+#include "./eval_env.h"
 #include <iomanip>
 #include <sstream>
 #include <cmath>
 #include <vector>
-#include "value.h"
 #include <iostream>
 bool Value::isNil(){
     return typeid(*this) == typeid(NilValue);
@@ -18,6 +18,14 @@ bool Value::isSelfEvaluating(){
 bool Value::isPair(){
     return typeid(*this) == typeid(PairValue);
 }
+bool Value::isList(){
+    if (isNil()) return true;
+    if (!isPair()) return false;
+    ValuePtr cur = shared_from_this();
+    while (cur->isPair())
+        cur = cur->asPair()->cdr();
+    return cur->isNil();
+}
 bool Value::isString(){
     return typeid(*this) == typeid(StringValue);
 }
@@ -29,24 +37,31 @@ bool Value::isSymbol(){
 }
 bool Value::isInteger() {
     if(!isNumber())return false;
-    double num = asNumber();
-    return (floor(num) == num);
+    return std::floor(asNumber()) == asNumber();
 }
 bool Value::isBool() {
     return typeid(*this) == typeid(BooleanValue);
 }
 bool Value::isProcedure() {
-    return typeid(*this) == typeid(BuiltinProcValue);
+    return typeid(*this) == typeid(BuiltinProcValue) || typeid(*this) == typeid(LambdaValue);
 }
 double Value::asNumber(){
     if(!isNumber())throw(LispError("Not a number"));
-    return std::stod(toString());
+    return 0;  // NumericValue overrides this
+}
+bool Value::asBool(){
+    if(!isBool())throw(LispError("Not a boolean"));
+    return false;  // BooleanValue overrides this
+}
+std::shared_ptr<PairValue> Value::asPair(){
+    if(!isPair())throw(LispError("Not a pair"));
+    return std::dynamic_pointer_cast<PairValue>(shared_from_this());
 }
 std::vector<ValuePtr> Value::toVector(){
     //std::cout << "begin:" << toString() <<std::endl;
     if(isNil())return {};
     if(!isPair()){
-        throw(LispError("cannot transform to vector"));
+        return {shared_from_this()};
     }
     std::vector<ValuePtr> v;
     ValuePtr cur = shared_from_this();
@@ -91,7 +106,7 @@ std::string SymbolValue::toString(){
 std::string BuiltinProcValue::toString(){
     return "#<procedure>";
 }
-ValuePtr BuiltinProcValue::call(std::vector<ValuePtr> args){
+ValuePtr BuiltinProcValue::call(FuncArgs& args){
     return value(args);
 }
 static std::string noquoted(std::string s){
@@ -109,9 +124,18 @@ std::string PairValue::toString(){
     std::string connect = s2.size() ? " " : "";
     return "(" + s1 + connect + s2 + ")";
 }
-std::string LambdaValue::toString(){
+ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
+    auto env = parent->createChild(params, args);
+    ValuePtr ret = nullptr;
+    for(auto mem:body){
+        ret = env->eval(mem);
+    }
+    return ret;
+}
+std::string LambdaValue::toString() {
     return "#<procedure>";
 }
+
 ValuePtr ToList(const std::vector<ValuePtr> &ptrs){
     int len = ptrs.size();
     if(!len)return std::make_shared<NilValue>();

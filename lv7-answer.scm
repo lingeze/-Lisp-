@@ -1,0 +1,10 @@
+(define (qsort lst)
+  (if (null? lst)
+      '()
+      (let ((pivot (car lst))
+            (rest (cdr lst)))
+        (append (qsort (filter (lambda (x) (< x pivot)) rest))
+                (list pivot)
+                (qsort (filter (lambda (x) (>= x pivot)) rest))))))
+
+(print (qsort '(12 71 2 15 29 82 87 8 18 66 81 25 63 97 40 3 93 58 53 31 47)))

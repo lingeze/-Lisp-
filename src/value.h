@@ -4,9 +4,12 @@
 #include <memory>
 #include <vector>
 #include <optional>
+class EvalEnv;
+class PairValue;
 class Value;
 using ValuePtr = std::shared_ptr<Value>;
-using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
+class FuncArgs;
+using BuiltinFuncType = ValuePtr(FuncArgs&);
 class Value: public std::enable_shared_from_this<Value>{
 public:
     virtual ~Value() = default;
@@ -14,15 +17,21 @@ public:
     bool isSelfEvaluating();
     bool isNil();
     bool isPair();
+    bool isList();
     bool isNumber();
     bool isString();
     bool isSymbol();
     bool isInteger();
-    double asNumber();
+    virtual double asNumber();
+    std::shared_ptr<PairValue> asPair();
     bool isBool();
+    virtual bool asBool();
     bool isProcedure();
     std::vector<ValuePtr> toVector();
     virtual std::optional<std::string> asSymbol(){
+        return std::nullopt;
+    }
+    virtual std::optional<std::string> asString(){
         return std::nullopt;
     }
 };
@@ -34,6 +43,7 @@ public:
 
     }
     std::string toString() override;
+    bool asBool() override { return value; }
 };
 class NumericValue: public Value{
 private:
@@ -43,6 +53,7 @@ public:
 
     }
     std::string toString() override;
+    double asNumber() override { return value; }
 };
 class StringValue: public Value{
 private:
@@ -52,6 +63,9 @@ public:
 
     }
     std::string toString() override;
+    std::optional<std::string> asString() override{
+        return value;
+    }
 };
 class NilValue: public Value{
 public:
@@ -89,20 +103,26 @@ public:
 
     }
     std::string toString() override;
-    ValuePtr call(std::vector<ValuePtr> args);
+    ValuePtr call(FuncArgs& args);
 };
 class LambdaValue : public Value {
 private:
     std::vector<std::string> params{};
     std::vector<ValuePtr> body{};
+    std::shared_ptr<EvalEnv> parent{nullptr};
 public:
+    LambdaValue(std::vector<std::string> params, std::vector<ValuePtr> body, std::shared_ptr<EvalEnv> env):
+        params(params), body(body), parent{env}{
+
+    }
     LambdaValue(std::vector<std::string> params, std::vector<ValuePtr> body):params(params), body(body){
 
     }
     LambdaValue(){
 
     }
-    std::string toString() override; // 如前所述，返回 #<procedure> 即可
+    ValuePtr apply(const std::vector<ValuePtr>& args);
+    std::string toString() override;
 };
 ValuePtr ToList(const std::vector<ValuePtr>& ptrs);
 #endif

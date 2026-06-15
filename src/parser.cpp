@@ -51,7 +51,7 @@ ValuePtr Parser::parse(){
             this->parse()});
         ;
     }
-    else throw SyntaxError("Unimplemented");
+    else throw SyntaxError("unexpected token in expression");
 }
 ValuePtr Parser::parseTails(){
     if (tokens.front()->getType() == TokenType::RIGHT_PAREN) {
@@ -64,7 +64,7 @@ ValuePtr Parser::parseTails(){
         tokens.pop_front();
         auto cdr = this->parse();
         if(tokens.front()->getType() != TokenType::RIGHT_PAREN){
-            throw SyntaxError("paren error");
+            throw SyntaxError("unmatched parenthesis");
         }
         tokens.pop_front();
         //再弹出一个词法标记，它应当是 ')';

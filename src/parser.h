@@ -10,6 +10,7 @@ public:
     Parser(std::deque<TokenPtr> tokens):tokens{std::move(tokens)}{
 
     }
+    bool empty() const { return tokens.empty(); }
     ValuePtr parse();
     ValuePtr parseTails();
     void print();

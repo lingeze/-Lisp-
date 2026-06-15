@@ -1,359 +1,403 @@
 #include "./builtins.h"
+
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include "builtins.h"
-#include <cmath>
-ValuePtr add(const std::vector<ValuePtr>& params) {
-    auto result = 0.0;
-    for (const auto& i : params) {
-        if (!i->isNumber()) {
-            throw LispError("cannot add a non-numeric value.");
-        }
-        result += i->asNumber();
-    }
+#include <vector>
+
+#include "./builtin_func_args.h"
+#include "./eval_env.h"
+
+// ========== 算术运算库 ==========
+
+ValuePtr add(FuncArgs& args) {
+    double result = 0.0;
+    for (size_t i = 0; i < args.argCount(); ++i) result += args[i]->asNumber();
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr minus(const std::vector<ValuePtr>& params) {
-    if(params.size() == 0){
-        throw LispError("no arguments");
-    }
-    if(params.size() == 1){
-        if(!params[0]->isNumber())throw LispError("argument is a non-numeric value.");
-        else return std::make_shared<NumericValue>(-params[0]->asNumber());
-    }
-    if(params.size() == 2){
-        if(!params[0]->isNumber() || !params[1]->isNumber())
-            throw LispError("argument is a non-numeric value.");
-        else return std::make_shared<NumericValue>(params[0]->asNumber() - params[1]->asNumber() );
-    }
-    if(params.size() > 2){
-        throw LispError("too much arguments");
-    }
+ValuePtr minus(FuncArgs& args) {
+    if (args.argCount() == 0) throw LispError("-: expected at least 1 argument");
+    if (args.argCount() == 1)
+        return std::make_shared<NumericValue>(-args[0]->asNumber());
+    if (args.argCount() == 2)
+        return std::make_shared<NumericValue>(args[0]->asNumber() -
+                                              args[1]->asNumber());
+    throw LispError("-: expected at most 2 arguments, got " + std::to_string(args.argCount()));
 }
-ValuePtr multiply(const std::vector<ValuePtr>& params) {
-    auto result = 1.0;
-    for (const auto& i : params) {
-        if (!i->isNumber()) {
-            throw LispError("cannot multiply a non-numeric value.");
-        }
-        result *= i->asNumber();
-    }
+
+ValuePtr multiply(FuncArgs& args) {
+    double result = 1.0;
+    for (size_t i = 0; i < args.argCount(); ++i) result *= args[i]->asNumber();
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr divide(const std::vector<ValuePtr>& params) {
-    if(params.size() == 0){
-        throw LispError("no arguments");
+ValuePtr divide(FuncArgs& args) {
+    if (args.argCount() == 0) throw LispError("/: expected at least 1 argument");
+    if (args.argCount() == 1) {
+        double num = args[0]->asNumber();
+        if (num == 0) throw LispError("/: cannot divide by 0");
+        return std::make_shared<NumericValue>(1.0 / num);
     }
-    if(params.size() == 1){
-        if(!params[0]->isNumber())throw LispError("argument is a non-numeric value.");
-        else {
-            double num = params[0]->asNumber();
-            if(num == 0)throw LispError("cannot divide 0");
-            return std::make_shared<NumericValue>(1.0/params[0]->asNumber());
-        }
+    if (args.argCount() == 2) {
+        double num = args[1]->asNumber();
+        if (num == 0) throw LispError("/: cannot divide by 0");
+        return std::make_shared<NumericValue>(args[0]->asNumber() / num);
     }
-    if(params.size() == 2){
-        if(!params[0]->isNumber() || !params[1]->isNumber())
-            throw LispError("argument is a non-numeric value.");
-        else {
-            double num = params[1]->asNumber();
-            if(num == 0)throw LispError("cannot divide 0");
-            return std::make_shared<NumericValue>(params[0]->asNumber() / params[1]->asNumber() );
-        }
-    }
-    if(params.size() > 2){
-        throw LispError("too much arguments");
-    }
-}
-ValuePtr _abs(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber()){
-        throw(LispError("argument is a non-numeric value."));
-    }
-    return std::make_shared<NumericValue>(abs(params[0]->asNumber()));
-}
-ValuePtr expt(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    if(params[0]->asNumber() == 0 && params[1]->asNumber() == 0)
-        throw LispError("input is invalid");
-    return std::make_shared<NumericValue>(std::pow(params[0]->asNumber(), params[1]->asNumber()));
+    throw LispError("/: expected at most 2 arguments, got " + std::to_string(args.argCount()));
 }
 
-ValuePtr quotient(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    if(params[1]->asNumber() == 0)
-        throw LispError("cannot divide 0");
-    return std::make_shared<NumericValue>(std::trunc(params[0]->asNumber()/params[1]->asNumber()));
-}
-ValuePtr equal(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() == params[1]->asNumber());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr greater(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() > params[1]->asNumber());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr less(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() < params[1]->asNumber());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr greaterEqual(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() >= params[1]->asNumber());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr lessEqual(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() <= params[1]->asNumber());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr evenq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isInteger())
-        throw LispError("argument is not an integer.");
-    bool valid = ((static_cast<int>(params[0]->asNumber()) % 2) == 0);
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr oddq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isInteger())
-        throw LispError("argument is not an integer.");
-    bool valid = ((static_cast<int>(params[0]->asNumber()) % 2) != 0);
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
+ValuePtr _abs(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<NumericValue>(std::abs(args[0]->asNumber()));
 }
 
-ValuePtr zeroq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    bool valid = (params[0]->asNumber() == 0);
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
+ValuePtr expt(FuncArgs& args) {
+    args.requireArgCount(2);
+    if (args[0]->asNumber() == 0 && args[1]->asNumber() == 0)
+        throw LispError("expt: 0^0 is undefined");
+    return std::make_shared<NumericValue>(
+        std::pow(args[0]->asNumber(), args[1]->asNumber()));
 }
-ValuePtr remainder(const std::vector<ValuePtr>& params){
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isNumber() || !params[1]->isNumber())
-        throw LispError("argument is a non-numeric value.");
-    double x = params[0]->asNumber(), y = params[1]->asNumber();
-    return std::make_shared<NumericValue>(x - std::trunc(x/y) * y);
+
+ValuePtr quotient(FuncArgs& args) {
+    args.requireArgCount(2);
+    if (args[1]->asNumber() == 0) throw LispError("quotient: cannot divide by 0");
+    return std::make_shared<NumericValue>(
+        std::trunc(args[0]->asNumber() / args[1]->asNumber()));
 }
-ValuePtr my_exit(const std::vector<ValuePtr>& params) {
+
+ValuePtr remainder(FuncArgs& args) {
+    args.requireArgCount(2);
+    double x = args[0]->asNumber(), y = args[1]->asNumber();
+    if (y == 0) throw LispError("remainder: cannot divide by 0");
+    return std::make_shared<NumericValue>(x - std::trunc(x / y) * y);
+}
+
+ValuePtr modulo(FuncArgs& args) {
+    args.requireArgCount(2);
+    double x = args[0]->asNumber(), y = args[1]->asNumber();
+    if (y == 0) throw LispError("modulo: cannot divide by 0");
+    double r = std::fmod(x, y);
+    if (r * y < 0) r += y;
+    return std::make_shared<NumericValue>(r);
+}
+
+// ========== 比较库 ==========
+
+ValuePtr eqq(FuncArgs& args) {
+    args.requireArgCount(2);
+    auto a = args[0], b = args[1];
+    if (typeid(*a) != typeid(*b)) return std::make_shared<BooleanValue>(false);
+    if (a->isBool() || a->isNumber() || a->isNil() || a->isSymbol())
+        return std::make_shared<BooleanValue>(a->toString() == b->toString());
+    return std::make_shared<BooleanValue>(a == b);
+}
+
+static bool equalHelper(ValuePtr a, ValuePtr b) {
+    if (typeid(*a) != typeid(*b)) return false;
+    if (a->isBool() || a->isNumber() || a->isNil() || a->isSymbol() || a->isString())
+        return a->toString() == b->toString();
+    if (a->isPair()) {
+        auto pa = std::dynamic_pointer_cast<PairValue>(a);
+        auto pb = std::dynamic_pointer_cast<PairValue>(b);
+        return equalHelper(pa->car(), pb->car()) &&
+               equalHelper(pa->cdr(), pb->cdr());
+    }
+    return 0;
+}
+
+ValuePtr equalq(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(equalHelper(args[0], args[1]));
+}
+
+ValuePtr _not(FuncArgs& args) {
+    args.requireArgCount(1);
+    auto v = args[0];
+    bool isFalse = (v->isBool() && !v->asBool());
+    return std::make_shared<BooleanValue>(isFalse);
+}
+
+ValuePtr equal(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() == args[1]->asNumber());
+}
+
+ValuePtr greater(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() > args[1]->asNumber());
+}
+
+ValuePtr less(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() < args[1]->asNumber());
+}
+
+ValuePtr greaterEqual(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() >= args[1]->asNumber());
+}
+
+ValuePtr lessEqual(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() <= args[1]->asNumber());
+}
+
+ValuePtr evenq(FuncArgs& args) {
+    args.requireArgCount(1);
+    if (!args[0]->isInteger()) throw LispError("even?: argument must be an integer");
+    return std::make_shared<BooleanValue>(
+        (static_cast<int>(args[0]->asNumber()) % 2) == 0);
+}
+
+ValuePtr oddq(FuncArgs& args) {
+    args.requireArgCount(1);
+    if (!args[0]->isInteger()) throw LispError("odd?: argument must be an integer");
+    return std::make_shared<BooleanValue>(
+        (static_cast<int>(args[0]->asNumber()) % 2) != 0);
+}
+
+ValuePtr zeroq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->asNumber() == 0);
+}
+
+// ========== 输入输出库 ==========
+
+ValuePtr my_exit(FuncArgs& args) {
+    if (args.argCount() > 1)
+        throw LispError("expected 0 or 1 argument, got " +
+                        std::to_string(args.argCount()));
     int code = 0;
-    if (params.size() > 1) {
-        throw LispError("expected 0 or 1 argument, got " + std::to_string(params.size()));
-    }
-    if (params.size() == 1) {
-        if (!params[0]->isNumber()) {
-            throw LispError("argument must be a number");
-        }
-        code = static_cast<int>(params[0]->asNumber());
-    }
+    if (args.argCount() == 1) code = static_cast<int>(args[0]->asNumber());
     std::exit(code);
 }
-ValuePtr print(const std::vector<ValuePtr>& params) {
-    if(params.size() > 1){
-        throw(LispError("too much params"));
-    }
-    for(auto p:params){
-        std::cout << p->toString() << std::endl;
-    }
+
+ValuePtr print(FuncArgs& args) {
+    if (args.argCount() > 1) throw LispError("print: expected at most 1 argument, got " + std::to_string(args.argCount()));
+    for (size_t i = 0; i < args.argCount(); ++i)
+        std::cout << args[i]->toString() << std::endl;
     return std::make_shared<NilValue>();
 }
-ValuePtr display(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(params[0]->isString())std::cout << params[0]->toString() << std::endl;
-    else std::cout << "'" << params[0]->toString() << std::endl;
+
+ValuePtr display(FuncArgs& args) {
+    args.requireArgCount(1);
+    if (auto s = args[0]->asString())
+        std::cout << *s << std::endl;
+    else
+        std::cout << "'" << args[0]->toString() << std::endl;
     return std::make_shared<NilValue>();
 }
-ValuePtr newline(const std::vector<ValuePtr>& params){
+
+ValuePtr newline(FuncArgs& args) {
     std::cout << std::endl;
     return std::make_shared<NilValue>();
 }
-ValuePtr atomq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = (params[0]->isNil() || params[0]->isNumber() || params[0]->isString()||
-        params[0]->isSymbol()||params[0]->isBool());
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr booleanq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isBool();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr listq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isNil() || params[0]->isPair();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr numberq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isNumber();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr nullq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isNil();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr pairq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isPair();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr procedureq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isProcedure();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr stringq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isString();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr symbolq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isSymbol();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr integerq(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    bool valid = params[0]->isInteger();
-    return (valid) ? std::make_shared<BooleanValue>(1) : std::make_shared<BooleanValue>(0);
-}
-ValuePtr car(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isPair()){
-        throw(LispError("argument is not a pair"));
-    }
-    auto pair = std::dynamic_pointer_cast<PairValue>(params[0]);
-    return pair->car();
-}
-ValuePtr cdr(const std::vector<ValuePtr>& params){
-    if(params.size() != 1){
-        throw(LispError("expected 1 arguments, got " + std::to_string(params.size())));
-    }
-    if(!params[0]->isPair()){
-        throw(LispError("argument is not a pair"));
-    }
-    auto pair = std::dynamic_pointer_cast<PairValue>(params[0]);
-    return pair->cdr();
-}
-ValuePtr cons(const std::vector<ValuePtr>& params) {
-    if(params.size() != 2){
-        throw(LispError("expected 2 arguments, got " + std::to_string(params.size())));
-    }
-    return std::make_shared<PairValue>(params[0], params[1]);
-}
-ValuePtr length(const std::vector<ValuePtr>& params) {
-    return std::make_shared<NumericValue>((int)params.size());
-}
-ValuePtr list(const std::vector<ValuePtr>& params) {
-    return ToList(params);
+
+ValuePtr displayln(FuncArgs& args) {
+    args.requireArgCount(1);
+    display(args);
+    std::cout << std::endl;
+    return std::make_shared<NilValue>();
 }
 
-static const BuiltinMap builtins = {                                                         
-    {"exit", &my_exit},
-    {"+", &add},
-    {"-", &minus},
-    {"*", &multiply},
-    {"/", &divide},
-    {"abs", &_abs}, 
-    {"expt", &expt},
-    {"quotient", &quotient},
-    {"=", &equal},
-    {">", &greater},
-    {"<", &less},
-    {">=", &greaterEqual},
-    {"<=", &lessEqual},
-    {"even?", &evenq},
-    {"odd?", &oddq},
-    {"zero?", &zeroq},                                                                            
-    {"print", &print},                                                                       
-    {"display", &display},
-    {"newline", &newline},
-    {"atom?", &atomq},
-    {"boolean?", &booleanq},
-    {"number?", &numberq},
-    {"list?", &listq},
-    {"string?", &stringq},
-    {"symbol?", &symbolq},
-    {"procedure?", &procedureq},
-    {"pair?", &pairq},
-    {"null?", &nullq},
-    {"integer?",&integerq},
-    {"car", &car},
-    {"cdr", &cdr},
-    {"cons", &cons},
-    {"length", &length},
-    {"list", &list},
-    {"remainder", &remainder}
-};                                                                                                       
-const BuiltinMap& getBuiltins() {                                                            
+ValuePtr error(FuncArgs& args) {
+    if (args.argCount() > 1) throw LispError("error: expected at most 1 argument, got " + std::to_string(args.argCount()));
+    if (args.argCount() == 0) throw LispError("error: no message");
+    throw LispError(args[0]->toString());
+}
+
+// ========== 类型检查库 ==========
+
+ValuePtr atomq(FuncArgs& args) {
+    args.requireArgCount(1);
+    auto v = args[0];
+    bool ok = v->isNil() || v->isNumber() || v->isString() || v->isSymbol() ||
+              v->isBool();
+    return std::make_shared<BooleanValue>(ok);
+}
+
+ValuePtr booleanq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isBool());
+}
+
+ValuePtr listq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isList());
+}
+
+ValuePtr numberq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isNumber());
+}
+
+ValuePtr nullq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isNil());
+}
+
+ValuePtr pairq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isPair());
+}
+
+ValuePtr procedureq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isProcedure());
+}
+
+ValuePtr stringq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isString());
+}
+
+ValuePtr symbolq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isSymbol());
+}
+
+ValuePtr integerq(FuncArgs& args) {
+    args.requireArgCount(1);
+    return std::make_shared<BooleanValue>(args[0]->isInteger());
+}
+
+// ========== 对子与列表操作库 ==========
+
+ValuePtr car(FuncArgs& args) {
+    args.requireArgCount(1);
+    return args[0]->asPair()->car();
+}
+
+ValuePtr cdr(FuncArgs& args) {
+    args.requireArgCount(1);
+    return args[0]->asPair()->cdr();
+}
+
+ValuePtr cons(FuncArgs& args) {
+    args.requireArgCount(2);
+    return std::make_shared<PairValue>(args[0], args[1]);
+}
+
+ValuePtr length(FuncArgs& args) {
+    args.requireArgCount(1);
+    if (!args[0]->isList()) throw LispError("length: expected a proper list");
+    return std::make_shared<NumericValue>((int)args[0]->toVector().size());
+}
+
+ValuePtr list(FuncArgs& args) {
+    return ToList(args.allArgs());
+}
+
+ValuePtr eval(FuncArgs& args) {
+    args.requireArgCount(1);
+    return args.env().eval(args[0]);
+}
+
+ValuePtr apply(FuncArgs& args) {
+    args.requireArgCount(2);
+    if (!args[1]->isList()) throw LispError("apply: expected a proper list");
+    return args.env().apply(args[0], args[1]->toVector());
+}
+
+ValuePtr append(FuncArgs& args){
+    std::vector<ValuePtr> finalArg{};
+    for(auto arg:args.allArgs()){
+        if (!arg->isList()) throw LispError("append: expected a proper list");
+        auto _arg = arg->toVector();
+        finalArg.insert(finalArg.end(), _arg.begin(), _arg.end());
+    }
+    return ToList(finalArg);
+}
+
+ValuePtr map(FuncArgs& args){
+    args.requireArgCount(2);
+    if (!args[1]->isList()) throw LispError("map: expected a proper list");
+    if (args[1]->isNil()) return std::make_shared<NilValue>();
+    std::vector<ValuePtr> res{};
+    auto v = args[1]->toVector();
+    for(auto arg:v){
+        res.push_back(args.env().apply(args[0], {arg}));
+    }
+    return ToList(res);
+}
+
+ValuePtr filter(FuncArgs& args){
+    args.requireArgCount(2);
+    if (!args[1]->isList()) throw LispError("filter: expected a proper list");
+    if (args[1]->isNil()) return std::make_shared<NilValue>();
+    std::vector<ValuePtr> res{};
+    auto v = args[1]->toVector();
+    for (auto arg:v){
+        auto val{args.env().apply(args[0], {arg})};
+        if (!val->isBool() || val->asBool()) res.push_back(arg);
+    }
+    return ToList(res);
+}
+
+ValuePtr reduce(FuncArgs& args){
+    args.requireArgCount(2);
+    if (!args[1]->isList()) throw LispError("reduce: expected a proper list");
+    if (args[1]->isNil()) throw LispError("reduce: expected a non-empty list");
+    auto v = args[1]->toVector();
+    if (v.size() == 1) return v[0];
+    ValuePtr result = v.back();
+    for (int i = (int)v.size() - 2; i >= 0; i--) {
+        result = args.env().apply(args[0], {v[i], result});
+    }
+    return result;
+}
+
+static const BuiltinMap builtins = {{"exit", &my_exit},
+                                    {"+", &add},
+                                    {"-", &minus},
+                                    {"*", &multiply},
+                                    {"/", &divide},
+                                    {"abs", &_abs},
+                                    {"expt", &expt},
+                                    {"quotient", &quotient},
+                                    {"modulo", &modulo},
+                                    {"remainder", &remainder},
+                                    {"=", &equal},
+                                    {">", &greater},
+                                    {"<", &less},
+                                    {">=", &greaterEqual},
+                                    {"<=", &lessEqual},
+                                    {"eq?", &eqq},
+                                    {"equal?", &equalq},
+                                    {"not", &_not},
+                                    {"even?", &evenq},
+                                    {"odd?", &oddq},
+                                    {"zero?", &zeroq},
+                                    {"print", &print},
+                                    {"display", &display},
+                                    {"newline", &newline},
+                                    {"displayln", &displayln},
+                                    {"error", &error},
+                                    {"atom?", &atomq},
+                                    {"boolean?", &booleanq},
+                                    {"number?", &numberq},
+                                    {"list?", &listq},
+                                    {"string?", &stringq},
+                                    {"symbol?", &symbolq},
+                                    {"procedure?", &procedureq},
+                                    {"pair?", &pairq},
+                                    {"null?", &nullq},
+                                    {"integer?", &integerq},
+                                    {"car", &car},
+                                    {"cdr", &cdr},
+                                    {"cons", &cons},
+                                    {"length", &length},
+                                    {"list", &list},
+                                    {"eval", &eval},
+                                    {"apply", &apply},
+                                    {"append", &append},
+                                    {"map", &map},
+                                    {"filter", &filter},
+                                    {"reduce", &reduce}
+                                    };
+
+const BuiltinMap& getBuiltins() {
     return builtins;
 }
