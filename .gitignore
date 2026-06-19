@@ -412,4 +412,19 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-Hw
+# Guidance docs (auto-generated)
+CODE_STRUCTURE_REPORT.md
+Lv7_EXTENSION_GUIDE.md
+REPLXX_GUIDE.md
+SCHEME_IMPLEMENTATION_GUIDE.md
+
+# Test artifacts
+result.txt
+*.out
+
+# replxx history
+.mini_lisp_history*
+
+# Misc
+Hw/
+.code-workspace

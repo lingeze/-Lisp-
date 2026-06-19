@@ -71,14 +71,8 @@ void EvalEnv::set_parent(const std::shared_ptr<EvalEnv>& parentEnv) {
 void EvalEnv::addVariable(const std::string& name, ValuePtr value) {
     symbolTable[name] = value;
 }
-void EvalEnv::delVariable(const std::string& name) {
-    symbolTable.erase(name);
-}
-std::unordered_map<std::string, ValuePtr> EvalEnv::saveSymbolTable() const {
+const std::unordered_map<std::string, ValuePtr>& EvalEnv::getSymbolTable() const {
     return symbolTable;
-}
-void EvalEnv::restoreSymbolTable(const std::unordered_map<std::string, ValuePtr>& tbl) {
-    symbolTable = tbl;
 }
 ValuePtr EvalEnv::lookupBinding(ValuePtr expr) {
     auto name = expr->asSymbol();

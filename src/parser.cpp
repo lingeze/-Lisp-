@@ -8,6 +8,7 @@ void Parser::print(){
     std::cout << std::endl;
 }
 ValuePtr Parser::parse(){
+    if (tokens.empty()) throw SyntaxError("unexpected end of input");
     auto &token = tokens.front();
     if (token->getType() == TokenType::NUMERIC_LITERAL) {
         auto value = static_cast<NumericLiteralToken&>(*token).getValue();
@@ -54,16 +55,18 @@ ValuePtr Parser::parse(){
     else throw SyntaxError("unexpected token in expression");
 }
 ValuePtr Parser::parseTails(){
+    if (tokens.empty()) throw SyntaxError("unmatched parenthesis");
     if (tokens.front()->getType() == TokenType::RIGHT_PAREN) {
         tokens.pop_front();
         return std::make_shared<NilValue>();
     }
     auto car = this->parse();
+    if (tokens.empty()) throw SyntaxError("unmatched parenthesis");
     if (tokens.front()->getType() == TokenType::DOT) {
         //弹出这个词法标记;
         tokens.pop_front();
         auto cdr = this->parse();
-        if(tokens.front()->getType() != TokenType::RIGHT_PAREN){
+        if(tokens.empty() || tokens.front()->getType() != TokenType::RIGHT_PAREN){
             throw SyntaxError("unmatched parenthesis");
         }
         tokens.pop_front();

@@ -14,10 +14,8 @@ public:
     std::vector<ValuePtr> evalList(ValuePtr expr);
     ValuePtr apply(ValuePtr proc, std::vector<ValuePtr> args);
     void addVariable(const std::string& name, ValuePtr value);
-    void delVariable(const std::string& name);
     ValuePtr lookupBinding(ValuePtr expr);
-    std::unordered_map<std::string, ValuePtr> saveSymbolTable() const;
-    void restoreSymbolTable(const std::unordered_map<std::string, ValuePtr>& tbl);
+    const std::unordered_map<std::string, ValuePtr>& getSymbolTable() const;
     std::shared_ptr<EvalEnv> createChild
     (const std::vector<std::string>& params, const std::vector<ValuePtr>& args);
 };

@@ -107,6 +107,7 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 }
 
 ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() == 0) throw LispError("cond: expected at least 1 clause");
     int s_args = args.size();
     for (int k = 0; k < s_args-1; k++){
         ValuePtr arg = args[k];
