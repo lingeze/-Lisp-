@@ -54,26 +54,30 @@ ValuePtr andForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() == 0) {
         return std::make_shared<BooleanValue>(true);
     }
+    int cnt = 0, s = args.size();
     for(auto arg:args){
         ValuePtr it = env.eval(arg);
         if (it->isBool() && !it->asBool()) return it;
+        cnt ++;
+        if (cnt == s)return it;
     }
-    int s = args.size();
-    return env.eval(args[s-1]);
+    throw LispError("and: internal error");
 }
 
 ValuePtr orForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() == 0) {
         return std::make_shared<BooleanValue>(false);
     }
+    int cnt = 0, s = args.size();
     for(auto arg:args){
         ValuePtr it = env.eval(arg);
         bool ok = true;
         if (it->isBool() && !it->asBool()) ok = false;
         if(ok) return it;
+        cnt ++;
+        if (cnt == s)return it;
     }
-    int s = args.size();
-    return env.eval(args[s-1]);
+    throw LispError("or: internal error");
 }
 
 ValuePtr beginForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
@@ -199,6 +203,17 @@ ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     return ToList(res);
 }
 
+ValuePtr delayForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() != 1)
+        throw LispError("delay: expected 1 argument");
+    return std::make_shared<PromiseValue>(args[0], env.shared_from_this());
+}
+ValuePtr delayForceForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() != 1)
+        throw LispError("delay-force: expected 1 argument");
+    return std::make_shared<PromiseValue>(args[0], env.shared_from_this(), true);
+}
+
 const std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"define", defineForm},
     {"quote", quoteForm},
@@ -209,5 +224,7 @@ const std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"begin", beginForm},
     {"cond", condForm},
     {"let", letForm},
-    {"quasiquote", quasiquoteForm}
+    {"quasiquote", quasiquoteForm},
+    {"delay", delayForm},
+    {"delay-force", delayForceForm}
 };

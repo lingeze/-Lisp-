@@ -38,19 +38,16 @@ ValuePtr Parser::parse(){
         tokens.pop_front();
         return ToList({std::make_shared<SymbolValue>("quote"),
             this->parse()});
-        ;
     }
     else if (token->getType() == TokenType::QUASIQUOTE) {
         tokens.pop_front();
         return ToList({std::make_shared<SymbolValue>("quasiquote"),
             this->parse()});
-        ;
     }
     else if (token->getType() == TokenType::UNQUOTE) {
         tokens.pop_front();
         return ToList({std::make_shared<SymbolValue>("unquote"),
             this->parse()});
-        ;
     }
     else throw SyntaxError("unexpected token in expression");
 }

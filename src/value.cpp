@@ -6,6 +6,7 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include "value.h"
 bool Value::isNil(){
     return typeid(*this) == typeid(NilValue);
 }
@@ -39,6 +40,9 @@ bool Value::isInteger() {
     if(!isNumber())return false;
     return std::floor(asNumber()) == asNumber();
 }
+bool Value::isPromise() {
+    return typeid(*this) == typeid(PromiseValue);
+}
 bool Value::isBool() {
     return typeid(*this) == typeid(BooleanValue);
 }
@@ -47,15 +51,19 @@ bool Value::isProcedure() {
 }
 double Value::asNumber(){
     if(!isNumber())throw(LispError("Not a number"));
-    return 0;  // NumericValue overrides this
+    return 0;
 }
 bool Value::asBool(){
     if(!isBool())throw(LispError("Not a boolean"));
-    return false;  // BooleanValue overrides this
+    return false;
 }
 std::shared_ptr<PairValue> Value::asPair(){
     if(!isPair())throw(LispError("Not a pair"));
     return std::dynamic_pointer_cast<PairValue>(shared_from_this());
+}
+std::shared_ptr<PromiseValue> Value::asPromise(){
+    if(!isPromise())throw(LispError("Not a promise"));
+    return std::dynamic_pointer_cast<PromiseValue>(shared_from_this());
 }
 std::vector<ValuePtr> Value::toVector(){
     //std::cout << "begin:" << toString() <<std::endl;
@@ -144,4 +152,20 @@ ValuePtr ToList(const std::vector<ValuePtr> &ptrs){
         ret = std::make_shared<PairValue>(ptrs[i], ret);
     }
     return ret;
+}
+ValuePtr PromiseValue::force() {
+    if(evaluated)return value;
+    ValuePtr result{};
+    result = env->eval(value);
+    if (forceResult) {
+        if(result->isPromise()){
+            result = result->asPromise()->force();
+        }
+    }
+    value = result;
+    evaluated = true;
+    return value;
+}
+std::string PromiseValue::toString() {
+    return "#<promise>";
 }

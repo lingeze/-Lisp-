@@ -53,5 +53,8 @@ ValuePtr apply(FuncArgs& args);
 ValuePtr map(FuncArgs& args);
 ValuePtr filter(FuncArgs& args);
 ValuePtr reduce(FuncArgs& args);
+ValuePtr force(FuncArgs& args);
+ValuePtr promiseq(FuncArgs& args);
+ValuePtr make_promise(FuncArgs& args);
 const BuiltinMap& getBuiltins();
 #endif

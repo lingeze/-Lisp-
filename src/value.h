@@ -6,6 +6,7 @@
 #include <optional>
 class EvalEnv;
 class PairValue;
+class PromiseValue;
 class Value;
 using ValuePtr = std::shared_ptr<Value>;
 class FuncArgs;
@@ -22,8 +23,10 @@ public:
     bool isString();
     bool isSymbol();
     bool isInteger();
+    bool isPromise();
     virtual double asNumber();
     std::shared_ptr<PairValue> asPair();
+    std::shared_ptr<PromiseValue> asPromise();
     bool isBool();
     virtual bool asBool();
     bool isProcedure();
@@ -115,14 +118,28 @@ public:
         params(params), body(body), parent{env}{
 
     }
-    LambdaValue(std::vector<std::string> params, std::vector<ValuePtr> body):params(params), body(body){
-
-    }
-    LambdaValue(){
-
-    }
     ValuePtr apply(const std::vector<ValuePtr>& args);
     std::string toString() override;
+};
+class PromiseValue : public Value {
+private:
+    ValuePtr value;
+    std::shared_ptr<EvalEnv> env;
+    bool evaluated{false};
+    bool forceResult{false};
+public:
+    PromiseValue(ValuePtr value, std::shared_ptr<EvalEnv> env):value{value}, env{env}{
+        
+    }
+    PromiseValue(ValuePtr value, std::shared_ptr<EvalEnv> env, bool forceResult):
+        value{value}, env{env}, forceResult{forceResult}{
+        
+    }
+    PromiseValue(ValuePtr value):value{value}, evaluated{true}{
+
+    }
+    ValuePtr force();
+    std::string toString()override;
 };
 ValuePtr ToList(const std::vector<ValuePtr>& ptrs);
 #endif

@@ -19,3 +19,6 @@ set_target_properties(
 if(MSVC)
   target_compile_options(mini_lisp PRIVATE /utf-8 /Zc:preprocessor)
 endif()
+if(MINGW)
+  target_link_options(mini_lisp PRIVATE -static)
+endif()
