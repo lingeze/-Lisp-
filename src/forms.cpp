@@ -97,6 +97,8 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     auto paramsExpr = args[0];
     std::vector<std::string> params;
     if (!paramsExpr->isNil()) {
+        if (!paramsExpr->isList())
+            throw LispError("lambda: parameters must be a proper list");
         for (auto& p : paramsExpr->toVector()) {
             if (auto sym = p->asSymbol()) {
                 params.push_back(*sym);
@@ -157,6 +159,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 
 ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env){
     if(args.size() < 2) throw LispError("let: expected at least 2 arguments");
+    if(!args[0]->isList()) throw LispError("let: bindings must be a proper list");
     auto params = args[0]->toVector();
     std::vector<std::string> lambdaParams;
     std::vector<ValuePtr> lambdaArgs;
@@ -179,28 +182,31 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env){
     return lambda->apply(lambdaArgs);
 }
 
+static ValuePtr quasiquoteWalk(ValuePtr tmpl, EvalEnv& env) {
+    if (tmpl->isNil()) return std::make_shared<NilValue>();
+    if (!tmpl->isPair()) return tmpl;
+    auto pair = tmpl->asPair();
+    auto elem = pair->car();
+    if (elem->isPair() && elem->asPair()->car()->isSymbol()) {
+        auto sym = elem->asPair()->car()->asSymbol();
+        if (*sym == "unquote") {
+            auto q = elem->toVector();
+            if (q.size() != 2)
+                throw LispError("unquote: expected exactly 1 argument");
+            auto car = env.eval(q[1]);
+            auto cdr = quasiquoteWalk(pair->cdr(), env);
+            return std::make_shared<PairValue>(car, cdr);
+        }
+    }
+    auto car = quasiquoteWalk(elem, env);
+    auto cdr = quasiquoteWalk(pair->cdr(), env);
+    return std::make_shared<PairValue>(car, cdr);
+}
+
 ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() != 1)
         throw LispError("quasiquote: expected 1 argument");
-    auto tmpl = args[0];
-    if (tmpl->isNil()) return std::make_shared<NilValue>();
-    if (!tmpl->isPair()) return tmpl;
-    auto v = tmpl->toVector();
-    std::vector<ValuePtr> res{};
-    for (ValuePtr elem : v) {
-        if (elem->isPair() && elem->asPair()->car()->isSymbol()) {
-            auto sym = elem->asPair()->car()->asSymbol();
-            if (*sym == "unquote") {
-                auto q = elem->toVector();
-                if (q.size() != 2)
-                    throw LispError("unquote: expected exactly 1 argument");
-                res.push_back(env.eval(q[1]));
-                continue;
-            }
-        }
-        res.push_back(elem);
-    }
-    return ToList(res);
+    return quasiquoteWalk(args[0], env);
 }
 
 ValuePtr delayForm(const std::vector<ValuePtr>& args, EvalEnv& env) {

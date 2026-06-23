@@ -11,8 +11,6 @@ std::shared_ptr<EvalEnv> EvalEnv::createGlobal() {
     return std::shared_ptr<EvalEnv>(new EvalEnv());
 }
 ValuePtr EvalEnv::eval(ValuePtr expr){
-    //std::cout << expr->toString() << std::endl; 
-    //std::cout << "eval:" << expr->isNil() << std::endl;
     if(expr->isNil()){
         throw LispError("cannot evaluate nil");
     }

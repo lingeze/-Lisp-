@@ -13,7 +13,6 @@ TokenPtr Token::fromChar(char c) {
         case '\'': type = TokenType::QUOTE; break;
         case '`': type = TokenType::QUASIQUOTE; break;
         case ',': type = TokenType::UNQUOTE; break;
-        // DOT not listed here, because it can be part of identifier/literal.
         default: return nullptr;
     }
     return TokenPtr(new Token(type));

@@ -60,14 +60,12 @@ ValuePtr Parser::parseTails(){
     auto car = this->parse();
     if (tokens.empty()) throw SyntaxError("unmatched parenthesis");
     if (tokens.front()->getType() == TokenType::DOT) {
-        //弹出这个词法标记;
         tokens.pop_front();
         auto cdr = this->parse();
         if(tokens.empty() || tokens.front()->getType() != TokenType::RIGHT_PAREN){
             throw SyntaxError("unmatched parenthesis");
         }
         tokens.pop_front();
-        //再弹出一个词法标记，它应当是 ')';
         return std::make_shared<PairValue> (car, cdr);
     } else {
       auto cdr = this->parseTails();

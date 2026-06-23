@@ -54,9 +54,7 @@ std::string getHistoryPath() {
     return std::string(home) + "/.mini_lisp_history";
 }
 int main(int argc, char* argv[]) {
-    //RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
-    //RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp, Edge1Math, EdgeLogical, Edge3Hard);
-
+    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
     std::string inputPath;
     std::string historyPath = getHistoryPath();
     bool replMode = false;

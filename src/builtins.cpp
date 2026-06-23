@@ -105,7 +105,7 @@ static bool equalHelper(ValuePtr a, ValuePtr b) {
         auto pb = std::dynamic_pointer_cast<PairValue>(b);
         return equalHelper(pa->car(), pb->car()) && equalHelper(pa->cdr(), pb->cdr());
     }
-    return 0;
+    return a == b;
 }
 
 ValuePtr equalq(FuncArgs& args) {
@@ -175,10 +175,8 @@ ValuePtr my_exit(FuncArgs& args) {
 }
 
 ValuePtr print(FuncArgs& args) {
-    if (args.argCount() > 1)
-        throw LispError("print: expected at most 1 argument, got " + std::to_string(args.argCount()));
-    for (size_t i = 0; i < args.argCount(); ++i)
-        std::cout << args[i]->toString() << std::endl;
+    args.requireArgCount(1);
+    std::cout << args[0]->toString() << std::endl;
     return std::make_shared<NilValue>();
 }
 
@@ -187,11 +185,12 @@ ValuePtr display(FuncArgs& args) {
     if (auto s = args[0]->asString())
         std::cout << *s;
     else
-        std::cout << "'" << args[0]->toString() << " ";
+        std::cout << "'" << args[0]->toString();
     return std::make_shared<NilValue>();
 }
 
 ValuePtr newline(FuncArgs& args) {
+    args.requireArgCount(0);
     std::cout << std::endl;
     return std::make_shared<NilValue>();
 }

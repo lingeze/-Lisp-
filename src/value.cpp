@@ -66,7 +66,6 @@ std::shared_ptr<PromiseValue> Value::asPromise(){
     return std::dynamic_pointer_cast<PromiseValue>(shared_from_this());
 }
 std::vector<ValuePtr> Value::toVector(){
-    //std::cout << "begin:" << toString() <<std::endl;
     if(isNil())return {};
     if(!isPair()){
         return {shared_from_this()};
@@ -77,20 +76,13 @@ std::vector<ValuePtr> Value::toVector(){
         auto pair = std::dynamic_pointer_cast<PairValue>(cur);
         if (!pair) throw LispError("Invalid list structure");
         v.push_back(pair->car());
-        //std::cout << pair->car()->toString() << std::endl;
         cur = pair->cdr();
-        //std::cout << pair->cdr()->toString() << std::endl;
         if (!cur->isPair()) {
             if(cur->isNil())break;
             v.push_back(cur);
             break;
         }
     }
-    /*std::cout << v.size() << std::endl;
-    for(auto it : v){
-        std::cout << it->toString() << std::endl;
-    }
-    std::cout << "ok" << std::endl;*/
     return v;
 }
 std::string BooleanValue::toString(){
@@ -118,6 +110,7 @@ ValuePtr BuiltinProcValue::call(FuncArgs& args){
     return value(args);
 }
 static std::string noquoted(std::string s){
+    if(s.empty()) return s;
     int len = s.size();
     if(s[0] == '(' && s[len-1] == ')')s = s.substr(1,len - 2);
     return s;

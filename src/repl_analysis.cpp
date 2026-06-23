@@ -49,7 +49,6 @@ void ReplAnalysis::analyze(const std::string& input) {
             continue;
         }
 
-        // 注释
         if (c == ';') {
             int begin = i;
             while (i < (int)input.size() && input[i] != '\n') i++;
@@ -57,7 +56,6 @@ void ReplAnalysis::analyze(const std::string& input) {
             continue;
         }
 
-        // 字符串
         if (c == '"') {
             int begin = i;
             bool escaped = false;
@@ -109,7 +107,6 @@ void ReplAnalysis::analyze(const std::string& input) {
             continue;
         }
 
-        // quote, quasiquote, unquote
         if (c == '\'' || c == '`' || c == ',') {
             int begin = i;
             i++;

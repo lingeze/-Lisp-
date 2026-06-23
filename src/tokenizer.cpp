@@ -64,7 +64,8 @@ TokenPtr Tokenizer::nextToken(int& pos) {
             if (std::isdigit(text[0]) || text[0] == '+' || text[0] == '-' || text[0] == '.') {
                 try {
                     return std::make_unique<NumericLiteralToken>(std::stod(text));
-                } catch (std::invalid_argument& e) {
+                } catch (std::invalid_argument&) {
+                } catch (std::out_of_range&) {
                 }
             }
             return std::make_unique<IdentifierToken>(text);
