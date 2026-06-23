@@ -24,19 +24,14 @@ public:
     bool isSymbol();
     bool isInteger();
     bool isPromise();
-    virtual double asNumber();
+    bool isProcedure();
+    double asNumber();
     std::shared_ptr<PairValue> asPair();
     std::shared_ptr<PromiseValue> asPromise();
     bool isBool();
-    virtual bool asBool();
-    bool isProcedure();
+    bool asBool();
     std::vector<ValuePtr> toVector();
-    virtual std::optional<std::string> asSymbol(){
-        return std::nullopt;
-    }
-    virtual std::optional<std::string> asString(){
-        return std::nullopt;
-    }
+    std::optional<std::string> tryAsSymbol();
 };
 class BooleanValue: public Value{
 private:
@@ -46,7 +41,7 @@ public:
 
     }
     std::string toString() override;
-    bool asBool() override { return value; }
+    bool getValue() const { return value; }
 };
 class NumericValue: public Value{
 private:
@@ -56,7 +51,7 @@ public:
 
     }
     std::string toString() override;
-    double asNumber() override { return value; }
+    double getValue() const { return value; }
 };
 class StringValue: public Value{
 private:
@@ -66,9 +61,7 @@ public:
 
     }
     std::string toString() override;
-    std::optional<std::string> asString() override{
-        return value;
-    }
+    const std::string& getValue() const { return value; }
 };
 class NilValue: public Value{
 public:
@@ -82,9 +75,6 @@ public:
 
     }
     std::string toString() override;
-    std::optional<std::string> asSymbol()override{
-        return toString();
-    }
 };
 class PairValue: public Value{
 private:

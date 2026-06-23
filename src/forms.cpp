@@ -6,21 +6,17 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env){
     if (args.size() < 2){
         throw LispError("define: expected at least 2 arguments, got " + std::to_string(args.size()));
     }
-    if (auto name = args[0]->asSymbol()) {
+    if (auto name = args[0]->tryAsSymbol()) {
         env.addVariable(*name, env.eval(args[1]));
         return std::make_shared<NilValue>();
     }
     else if(args[0]->isPair()) {
         auto pair = args[0]->asPair();
-        if(auto name = pair->car()->asSymbol()) {
+        if(auto name = pair->car()->tryAsSymbol()) {
             std::vector<ValuePtr> lambdaArgs;
             lambdaArgs.push_back(pair->cdr());
-            lambdaArgs.insert(
-                lambdaArgs.end(),
-                args.begin() + 1,
-                args.end()
-            );
-            env.addVariable(*name,lambdaForm(lambdaArgs, env));
+            lambdaArgs.insert(lambdaArgs.end(), args.begin() + 1, args.end());
+            env.addVariable(*name, lambdaForm(lambdaArgs, env));
             return std::make_shared<NilValue>();
         }
         else {
@@ -100,7 +96,7 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         if (!paramsExpr->isList())
             throw LispError("lambda: parameters must be a proper list");
         for (auto& p : paramsExpr->toVector()) {
-            if (auto sym = p->asSymbol()) {
+            if (auto sym = p->tryAsSymbol()) {
                 params.push_back(*sym);
             } else {
                 throw LispError("lambda: parameter must be a symbol");
@@ -135,7 +131,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (v.size() == 0){
        throw LispError("cond: expected at least 1 expression in clause");
     }
-    if (auto name = v[0]->asSymbol()){
+    if (auto name = v[0]->tryAsSymbol()){
         if(*name == "else"){
             if(v.size() == 1) throw LispError("cond: else clause requires at least 1 expression");
             ValuePtr res{};
@@ -171,7 +167,7 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env){
         if(param.size() != 2){
             throw LispError("let: each binding must have exactly 2 elements");
         }
-        if(auto name = param[0]->asSymbol()){
+        if(auto name = param[0]->tryAsSymbol()){
             lambdaParams.push_back(*name);
             lambdaArgs.push_back(env.eval(param[1]));
         }
@@ -188,7 +184,7 @@ static ValuePtr quasiquoteWalk(ValuePtr tmpl, EvalEnv& env) {
     auto pair = tmpl->asPair();
     auto elem = pair->car();
     if (elem->isPair() && elem->asPair()->car()->isSymbol()) {
-        auto sym = elem->asPair()->car()->asSymbol();
+        auto sym = elem->asPair()->car()->tryAsSymbol();
         if (*sym == "unquote") {
             auto q = elem->toVector();
             if (q.size() != 2)

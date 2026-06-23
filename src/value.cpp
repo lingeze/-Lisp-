@@ -49,13 +49,17 @@ bool Value::isBool() {
 bool Value::isProcedure() {
     return typeid(*this) == typeid(BuiltinProcValue) || typeid(*this) == typeid(LambdaValue);
 }
+std::optional<std::string> Value::tryAsSymbol(){
+    if(!isSymbol())return std::nullopt;
+    return std::dynamic_pointer_cast<SymbolValue>(shared_from_this())->toString();
+}
 double Value::asNumber(){
     if(!isNumber())throw(LispError("Not a number"));
-    return 0;
+    return std::dynamic_pointer_cast<NumericValue>(shared_from_this())->getValue();
 }
 bool Value::asBool(){
     if(!isBool())throw(LispError("Not a boolean"));
-    return false;
+    return std::dynamic_pointer_cast<BooleanValue>(shared_from_this())->getValue();
 }
 std::shared_ptr<PairValue> Value::asPair(){
     if(!isPair())throw(LispError("Not a pair"));

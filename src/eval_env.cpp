@@ -19,7 +19,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr){
     }
     else if(expr->isPair()){
         auto pair = expr->asPair();
-        if (auto name = pair->car()->asSymbol()) {
+        if (auto name = pair->car()->tryAsSymbol()) {
             if (auto it = SPECIAL_FORMS.find(*name); it != SPECIAL_FORMS.end()) {
                 return it->second(pair->cdr()->toVector(), *this);
             }
@@ -28,7 +28,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr){
         std::vector<ValuePtr> args = evalList(pair->cdr());
         return apply(proc, args);
     }
-    else if(auto name = expr->asSymbol()){
+    else if(auto name = expr->tryAsSymbol()){
         return lookupBinding(expr);
     }
     else{
@@ -73,7 +73,7 @@ const std::unordered_map<std::string, ValuePtr>& EvalEnv::getSymbolTable() const
     return symbolTable;
 }
 ValuePtr EvalEnv::lookupBinding(ValuePtr expr) {
-    auto name = expr->asSymbol();
+    auto name = expr->tryAsSymbol();
     if (symbolTable.find(*name) != symbolTable.end()) {
         auto value = symbolTable[*name];
         return value;

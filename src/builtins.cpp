@@ -46,8 +46,7 @@ ValuePtr divide(FuncArgs& args) {
         if (num == 0) throw LispError("/: cannot divide by 0");
         return std::make_shared<NumericValue>(args[0]->asNumber() / num);
     }
-    throw LispError("/: expected at most 2 arguments, got " +
-                    std::to_string(args.argCount()));
+    throw LispError("/: expected at most 2 arguments, got " + std::to_string(args.argCount()));
 }
 
 ValuePtr _abs(FuncArgs& args) {
@@ -122,14 +121,12 @@ ValuePtr _not(FuncArgs& args) {
 
 ValuePtr equal(FuncArgs& args) {
     args.requireArgCount(2);
-    return std::make_shared<BooleanValue>(args[0]->asNumber() ==
-                                          args[1]->asNumber());
+    return std::make_shared<BooleanValue>(args[0]->asNumber() == args[1]->asNumber());
 }
 
 ValuePtr greater(FuncArgs& args) {
     args.requireArgCount(2);
-    return std::make_shared<BooleanValue>(args[0]->asNumber() >
-                                          args[1]->asNumber());
+    return std::make_shared<BooleanValue>(args[0]->asNumber() > args[1]->asNumber());
 }
 
 ValuePtr less(FuncArgs& args) {
@@ -182,8 +179,8 @@ ValuePtr print(FuncArgs& args) {
 
 ValuePtr display(FuncArgs& args) {
     args.requireArgCount(1);
-    if (auto s = args[0]->asString())
-        std::cout << *s;
+    if (args[0]->isString())
+        std::cout << args[0]->toString();
     else
         std::cout << "'" << args[0]->toString();
     return std::make_shared<NilValue>();

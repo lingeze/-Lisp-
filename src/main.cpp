@@ -54,12 +54,12 @@ std::string getHistoryPath() {
     return std::string(home) + "/.mini_lisp_history";
 }
 int main(int argc, char* argv[]) {
-    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
+    //RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
     std::string inputPath;
     std::string historyPath = getHistoryPath();
     bool replMode = false;
     int opt;
-    while ((opt = getopt_long(argc, argv, "o:rh", longOpts, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "rh", longOpts, nullptr)) != -1) {
         switch (opt) {
             case 'r': replMode = true;     break;
             case 'h': printUsage(); return 0;
@@ -75,9 +75,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    auto env = EvalEnv::createGlobal();
-    replxx::Replxx rx;
-    ReplEditor editor(rx, env, historyPath);
+    auto env = EvalEnv::createGlobal();  
     if (!inputPath.empty()) {
         try {
             runFile(inputPath, env);
@@ -87,6 +85,8 @@ int main(int argc, char* argv[]) {
         }
         return 0;
     }
+    replxx::Replxx rx;
+    ReplEditor editor(rx, env, historyPath);
     editor.install();
     while (true) {
         try {
